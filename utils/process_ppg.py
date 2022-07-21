@@ -24,7 +24,7 @@ def butter_bandpass_filter(data, lowcut, highcut, sample_rate, order=2):
     return y
 
 
-def get_clean_segment(ppg_sig, std_n=1.5):
+def get_clean_segment(ppg_sig, std_n=2.0):
 	filtered_clean = [[]]
 	start = False
 	mean_filtered = np.mean(ppg_sig)
@@ -59,17 +59,11 @@ def get_clean_segment(ppg_sig, std_n=1.5):
 	return filtered_clean
 
 
-def get_filtered_ppg(raw_signal, sample_rate=30.0):
+def get_filtered_ppg(t_seconds, raw_signal, sample_rate=30.0):
 
-	tElapsed = np.array([i/sample_rate for i in range(len(raw_signal))])
 	discard_len = 5.0 #seconds
-	raw_signal = raw_signal[tElapsed>discard_len]
-	tElapsed = tElapsed[tElapsed>discard_len]
-
-	# raw_signal = get_clean_segment(raw_signal, std_n=3.0)
 
 	f, Pxx_den = periodogram(raw_signal, sample_rate, 'flattop', scaling='spectrum')
-
 	lowcut_ppg = 1.6
 	highcut_ppg = 3.0
 	lowcut_resp = 0.15
@@ -86,41 +80,21 @@ def get_filtered_ppg(raw_signal, sample_rate=30.0):
 	highcut_ppg = max_power_freq_ppg + 0.8
 
 	filtered_PPG = butter_bandpass_filter(raw_signal, lowcut_ppg, highcut_ppg, sample_rate, order=order)
-	filtered_resp = butter_bandpass_filter(raw_signal, lowcut_resp, highcut_resp, sample_rate, order=order)
+	# filtered_resp = butter_bandpass_filter(raw_signal, lowcut_resp, highcut_resp, sample_rate, order=order)
 
-	# discard_len = 5.0 #seconds
-	# raw_signal = raw_signal[tElapsed>discard_len]
-	# filtered_PPG = filtered_PPG[tElapsed>discard_len]
-	# filtered_resp = filtered_resp[tElapsed>discard_len]
-	# tElapsed = tElapsed[tElapsed>discard_len]
+	# filtered_PPG = filtered_PPG[t_seconds>discard_len]
+	# # filtered_resp = filtered_resp[t_seconds>discard_len]
+	# t_seconds = t_seconds[t_seconds>discard_len]
 
-	filtered_PPG = get_clean_segment(filtered_PPG)
+	# filtered_PPG = get_clean_segment(filtered_PPG)
 
-	# fig, ax = plt.subplots(3, 1, sharex=False)
-
-	# ax[0].stem(f, np.sqrt(Pxx_den))
-	# # ax[0].set_ylim([1e-4, 5e-1])
-	# ax[0].set_xlim([1.6, 3.2])
-	# ax[0].set_xlabel('frequency [Hz]')
-	# ax[0].set_ylabel('PSD')
-
-	# ax[1].plot(tElapsed, filtered_PPG)
-	# ax[1].set_xlabel("Time (seconds)")
-	# ax[1].set_ylabel("Filtered PPG Signal")
-
-	# ax[2].plot(tElapsed, filtered_resp)
-	# ax[2].set_xlabel("Time (seconds)")
-	# ax[2].set_ylabel("Filtered Resp Signal")
-
-	# plt.show()
-
-	return filtered_PPG
+	return t_seconds, filtered_PPG
 
 def load_PPG_signal(filepath):
 	try:
 		with open(filepath, newline='') as csvfile:
 			txt_data = csv.reader(csvfile, delimiter=',')
-			tElapsed_txt, raw_signal_txt = txt_data
+			print()
 	except:
 		if os.path.exists(filepath):
 			print("Error reading the file", filepath)
@@ -129,13 +103,16 @@ def load_PPG_signal(filepath):
 			print("Specified file not found", filepath)
 			return []
 
-	raw_signal = np.array([], dtype=np.double)
+	raw_signal_1 = np.array([], dtype=np.double)
+	raw_signal_2 = np.array([], dtype=np.double)
+	raw_signal_3 = np.array([], dtype=np.double)
 	tElapsed = np.array([], dtype=np.double)
-	for i in range(len(tElapsed_txt)):
-		raw_signal = np.append(raw_signal, np.double(raw_signal_txt[i]))
-		tElapsed = np.append(tElapsed, np.double(
-			tElapsed_txt[i])/1000.0)  # milliseconds to seconds
-	return raw_signal, tElapsed
+	for i in range(len(txt_data)):
+		tElapsed = np.append(tElapsed, np.double(txt_data[i][0])/1000.0)  # milliseconds to seconds
+		raw_signal_1 = np.append(raw_signal_1, np.double(txt_data[i][0]))
+		raw_signal_2 = np.append(raw_signal_2, np.double(txt_data[i][0]))
+		raw_signal_3 = np.append(raw_signal_3, np.double(txt_data[i][0]))
+	return tElapsed, raw_signal_1, raw_signal_2, raw_signal_3
 
 def get_ppg_measures_batch(datapath, outdir, sample_rate=30.0):
 
